@@ -1,17 +1,22 @@
 import { useState } from 'react'
 
-export function StatCard({ icon, iconColor = 'yellow', value, label, color }) {
+/* ── StatCard ── */
+export function StatCard({ icon, color = 'indigo', value, label, delta, deltaType }) {
   return (
-    <div className={`stat-card ${color || ''}`}>
-      <div className={`stat-icon ${iconColor}`}>{icon}</div>
-      <div className="stat-info">
+    <div className="stat-card">
+      <div className={`stat-icon-box ${color}`}>{icon}</div>
+      <div className="stat-body">
         <div className="stat-value">{value ?? '—'}</div>
         <div className="stat-label">{label}</div>
+        {delta && (
+          <div className={`stat-delta ${deltaType || 'up'}`}>{delta}</div>
+        )}
       </div>
     </div>
   )
 }
 
+/* ── Badge ── */
 export function Badge({ status }) {
   const map = {
     PENDING:     'badge badge-yellow',
@@ -21,41 +26,60 @@ export function Badge({ status }) {
     NOT_PAID:    'badge badge-red',
     ADMIN:       'badge badge-yellow',
     WARDEN:      'badge badge-blue',
-    STUDENT:     'badge badge-green',
+    STUDENT:     'badge badge-indigo',
     HOSTEL:      'badge badge-green',
     HOME:        'badge badge-orange',
-    MONDAY:      'badge badge-purple',
-    TUESDAY:     'badge badge-blue',
-    WEDNESDAY:   'badge badge-green',
-    THURSDAY:    'badge badge-yellow',
-    FRIDAY:      'badge badge-orange',
-    SATURDAY:    'badge badge-red',
-    SUNDAY:      'badge badge-purple',
+    ACTIVE:      'badge badge-green',
+    INACTIVE:    'badge badge-gray',
   }
-  const cls = map[status?.toUpperCase()] || 'badge badge-default'
+  const cls = map[status?.toUpperCase()] || 'badge badge-gray'
   return <span className={cls}>{status?.replace('_', ' ')}</span>
 }
 
-export function LoadingSpinner() {
-  return <div className="loading-wrapper"><div className="spinner"></div></div>
-}
-
-export function EmptyState({ icon = '📭', message = 'No data found' }) {
+/* ── Loading ── */
+export function LoadingSpinner({ size = 'normal' }) {
   return (
-    <div className="empty-state">
-      <div className="empty-icon">{icon}</div>
-      <p>{message}</p>
+    <div className="loading-center">
+      <div className={`spinner${size === 'sm' ? ' spinner-sm' : ''}`} />
     </div>
   )
 }
 
+/* ── Empty State ── */
+export function EmptyState({ icon = '📭', title = 'No data found', desc = '' }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon">{icon}</div>
+      <div className="empty-title">{title}</div>
+      {desc && <div className="empty-desc">{desc}</div>}
+    </div>
+  )
+}
+
+/* ── Alert ── */
+export function Alert({ type = 'error', message, onClose }) {
+  if (!message) return null
+  const typeMap = { error: 'alert-error', success: 'alert-success', warning: 'alert-warning', info: 'alert-info' }
+  const icons   = { error: '⚠', success: '✓', warning: '⚠', info: 'ℹ' }
+  return (
+    <div className={`alert ${typeMap[type]}`}>
+      <span>{icons[type]}</span>
+      <span style={{ flex: 1 }}>{message}</span>
+      {onClose && (
+        <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',opacity:0.6,marginLeft:8 }}>✕</button>
+      )}
+    </div>
+  )
+}
+
+/* ── Modal ── */
 export function Modal({ isOpen, onClose, title, children, size }) {
   if (!isOpen) return null
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${size === 'lg' ? 'modal-lg' : ''}`}>
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className={`modal${size === 'lg' ? ' modal-lg' : ''}`}>
         <div className="modal-header">
-          <h2>{title}</h2>
+          <span className="modal-title">{title}</span>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {children}
@@ -64,25 +88,27 @@ export function Modal({ isOpen, onClose, title, children, size }) {
   )
 }
 
-export function DataTable({ title, columns, data, onAdd, addLabel, searchable, actions, loading, emptyMsg }) {
+/* ── DataTable ── */
+export function DataTable({
+  title, columns, data = [], loading, onAdd, addLabel,
+  searchable, actions, emptyMsg, emptyIcon,
+}) {
   const [search, setSearch] = useState('')
 
   const filtered = searchable && search
     ? data.filter(row =>
-        Object.values(row).some(v =>
-          String(v ?? '').toLowerCase().includes(search.toLowerCase())
-        )
+        Object.values(row).some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
       )
     : data
 
   return (
-    <div className="table-wrapper">
-      <div className="table-header">
+    <div className="table-wrap">
+      <div className="table-toolbar">
         <span className="table-title">{title}</span>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="table-actions">
           {searchable && (
             <input
-              className="table-search"
+              className="search-input"
               placeholder="Search..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -90,7 +116,7 @@ export function DataTable({ title, columns, data, onAdd, addLabel, searchable, a
           )}
           {onAdd && (
             <button className="btn btn-primary btn-sm" onClick={onAdd}>
-              + {addLabel || 'Add'}
+              <span>+</span> {addLabel || 'Add'}
             </button>
           )}
         </div>
@@ -99,23 +125,21 @@ export function DataTable({ title, columns, data, onAdd, addLabel, searchable, a
       {loading ? (
         <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <EmptyState message={emptyMsg || 'No records found'} />
+        <EmptyState icon={emptyIcon} title={emptyMsg || 'No records found'} />
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-scroll">
           <table>
             <thead>
               <tr>
-                {columns.map(col => (
-                  <th key={col.key || col.label}>{col.label}</th>
-                ))}
+                {columns.map(col => <th key={col.label}>{col.label}</th>)}
                 {actions && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {filtered.map((row, i) => (
-                <tr key={row.id || i}>
+                <tr key={row.id ?? i}>
                   {columns.map(col => (
-                    <td key={col.key || col.label}>
+                    <td key={col.label}>
                       {col.render ? col.render(row) : (row[col.key] ?? '—')}
                     </td>
                   ))}
@@ -130,15 +154,26 @@ export function DataTable({ title, columns, data, onAdd, addLabel, searchable, a
   )
 }
 
-export function Alert({ type = 'error', message }) {
-  if (!message) return null
-  return <div className={`alert alert-${type}`}>{message}</div>
+/* ── Avatar ── */
+export function Avatar({ name, color = 'indigo' }) {
+  return (
+    <span className={`avatar avatar-${color}`}>
+      {name?.slice(0, 2).toUpperCase() || '??'}
+    </span>
+  )
 }
 
-export function PageLayout({ children }) {
+/* ── ProgressBar ── */
+export function ProgressBar({ value, max, color = 'indigo' }) {
+  const pct = max ? Math.min(100, Math.round((value / max) * 100)) : 0
   return (
-    <div className="app-layout">
-      {children}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="progress-bar" style={{ flex: 1 }}>
+        <div className={`progress-fill ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', minWidth: 36, textAlign: 'right' }}>
+        {value}/{max}
+      </span>
     </div>
   )
 }
