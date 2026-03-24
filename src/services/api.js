@@ -20,9 +20,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('hostel_token')
-      localStorage.removeItem('hostel_user')
-      window.location.href = '/login'
+      // Only clear and redirect if this wasn't the login request itself
+      const isLoginRequest = error.config?.url?.includes('/auth/login')
+      if (!isLoginRequest) {
+        localStorage.removeItem('hostel_token')
+        localStorage.removeItem('hostel_user')
+        window.location.href = '/'
+      }
     }
     return Promise.reject(error)
   }
