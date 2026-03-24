@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://hostel-management-backend.onrender.com/api',
+  baseURL: 'https://hostel-management-backend-oxge.onrender.com/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -20,7 +20,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Only clear and redirect if this wasn't the login request itself
       const isLoginRequest = error.config?.url?.includes('/auth/login')
       if (!isLoginRequest) {
         localStorage.removeItem('hostel_token')
